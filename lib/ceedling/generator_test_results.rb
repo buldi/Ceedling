@@ -123,30 +123,31 @@ class GeneratorTestResults
     # Process test executable results line-by-line
     output_string.lines do |line|
       # Process Unity test executable output
-      case line.chomp
+      chomped_line = line.chomp
+      case chomped_line
       when /(:IGNORE)/
         elements = extract_line_elements( executable, line, results[:source][:file] )
         results[:ignores] << elements[0] 
-        results[:stdout] << elements[1] if (!elements[1].nil?)
+        results[:stdout] << elements[1] unless (elements[1].nil? || elements[1].empty?)
 
       when /(:PASS$)/
         elements = extract_line_elements( executable, line, results[:source][:file] )
         results[:successes] << elements[0] 
-        results[:stdout] << elements[1] if (!elements[1].nil?)
+        results[:stdout] << elements[1] unless (elements[1].nil? || elements[1].empty?)
 
       when /(:PASS \(.* ms\)$)/
         elements = extract_line_elements( executable, line, results[:source][:file] )
         results[:successes] << elements[0] 
-        results[:stdout] << elements[1] if (!elements[1].nil?)
+        results[:stdout] << elements[1] unless (elements[1].nil? || elements[1].empty?)
 
       when /(:FAIL)/
         elements = extract_line_elements( executable, line, results[:source][:file] )
         results[:failures] << elements[0]
-        results[:stdout] << elements[1] if (!elements[1].nil?)
+        results[:stdout] << elements[1] unless (elements[1].nil? || elements[1].empty?)
 
       # Collect up all other output
       else
-        results[:stdout] << line.chomp # Ignores blank lines
+        results[:stdout] << chomped_line unless chomped_line.empty?
       end
     end
 

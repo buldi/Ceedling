@@ -22,9 +22,7 @@ class Gcov < Plugin
 
     # Are any reports enabled?
     @reports_enabled = reports_enabled?( @project_config[:gcov_reports] )
-    
-    # Was a gcov: task on the command line?
-    @cli_gcov_task = @ceedling[:system_wrapper].get_cmdline().any?{|item| item.include?( GCOV_TASK_ROOT )}
+    @cli_gcov_task = false
 
     # Validate the gcov tools if coverage summaries are enabled (summaries rely on the `gcov` tool)
     # Note: This gcov tool is a different configuration than the gcov tool used by ReportGenerator
@@ -38,8 +36,7 @@ class Gcov < Plugin
     # Validate configuration and tools while building Reportinators
     @reportinators = build_reportinators( 
       @project_config[:gcov_utilities],
-      @reports_enabled,
-      @cli_gcov_task
+      @reports_enabled
     )
 
     # Convenient instance variable references
@@ -74,6 +71,7 @@ class Gcov < Plugin
 
   def pre_link_execute(arg_hash)
     if arg_hash[:context] == GCOV_SYM
+      @cli_gcov_task = true
       arg_hash[:tool] = TOOLS_GCOV_LINKER
     end
   end
@@ -253,11 +251,11 @@ class Gcov < Plugin
     end
   end
 
-  def build_reportinators(config, enabled, gcov_task)
+  def build_reportinators(config, enabled)
     reportinators = []
 
-    # Do not instantiate reportinators (and tool validation) unless reports enabled and a gcov: task present in command line
-    return reportinators if ((!enabled) or (!gcov_task))
+    # Do not instantiate reportinators (and tool validation) unless reports enabled
+    return reportinators if (!enabled)
 
     config.each do |reportinator|
       if not GCOV_UTILITY_NAMES.map(&:upcase).include?( reportinator.upcase )
