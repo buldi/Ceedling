@@ -636,7 +636,7 @@ those header files. It's kinda magical.
 
 For more on the assertions and mocking shown above, consult the 
 documentation for [Unity] and [CMock] or the resources in
-Ceedling’s [README][/README.md].
+Ceedling’s [README](/README.md).
 
 Ceedling, Unity, and CMock rely on a variety of
 [conventions to make your life easier][conventions-and-behaviors].
@@ -5301,7 +5301,7 @@ for how to create custom plugins.
 
 ### Ceedling plugin `report_tests_pretty_stdout`
 
-[This plugin][report_tests_pretty_stdout] is meant to tbe the default for
+[This plugin][report_tests_pretty_stdout] is meant to be the default for
 printing test results to the console. Without it, readable test results are
 still produced but are not nicely formatted and summarized.
 
