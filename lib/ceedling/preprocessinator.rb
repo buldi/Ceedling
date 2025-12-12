@@ -26,64 +26,78 @@ class Preprocessinator
     # Aliases
     @includes_handler = @preprocessinator_includes_handler
     @file_handler = @preprocessinator_file_handler
+
+    # Thread-safe per-file locking for YAML cache operations
+    # Key: includes_list_filepath (String), Value: Mutex
+    @file_locks = {}
+    @file_locks_mutex = Mutex.new
   end
 
 
   def preprocess_includes(filepath:, test:, flags:, include_paths:, defines:, deep: false)
     includes_list_filepath = @file_path_utils.form_preprocessed_includes_list_filepath( filepath, test )
 
+    # Get or create a mutex for this specific cache file
+    file_lock = @file_locks_mutex.synchronize do
+      @file_locks[includes_list_filepath] ||= Mutex.new
+    end
+
     includes = []
 
-    # If existing YAML file of includes is newer than the file we're processing, skip preprocessing
-    if @file_wrapper.newer?( includes_list_filepath, filepath )
-      msg = @reportinator.generate_module_progress(
-        operation: "Loading #include statement listing file for",
-        module_name: test,
-        filename: File.basename(filepath)
-        )
-      @loginator.log( msg, Verbosity::NORMAL )
-      
-      # Note: It's possible empty YAML content returns nil
-      includes = @yaml_wrapper.load( includes_list_filepath )
+    # Wrap the entire check-read-or-extract-write operation in a mutex
+    # This prevents race conditions when multiple threads process the same file
+    file_lock.synchronize do
+      # If existing YAML file of includes is newer than the file we're processing, skip preprocessing
+      if @file_wrapper.newer?( includes_list_filepath, filepath )
+        msg = @reportinator.generate_module_progress(
+          operation: "Loading #include statement listing file for",
+          module_name: test,
+          filename: File.basename(filepath)
+          )
+        @loginator.log( msg, Verbosity::NORMAL )
 
-      msg = "Loaded existing #include list from #{includes_list_filepath}:"
+        # Note: It's possible empty YAML content returns nil
+        includes = @yaml_wrapper.load( includes_list_filepath )
 
-      if includes.nil? or includes.empty?
-        # Ensure includes defaults to emtpy array to prevent external iteration problems
-        includes = []
-        msg += ' <empty>'
+        msg = "Loaded existing #include list from #{includes_list_filepath}:"
+
+        if includes.nil? or includes.empty?
+          # Ensure includes defaults to emtpy array to prevent external iteration problems
+          includes = []
+          msg += ' <empty>'
+        else
+          includes.each { |include| msg += "\n - #{include}" }
+        end
+
+        @loginator.log( msg, Verbosity::DEBUG )
+        @loginator.log( '', Verbosity::DEBUG )
+
+      # Full preprocessing-based #include extraction with saving to YAML file
       else
-        includes.each { |include| msg += "\n - #{include}" }
+        includes = @includes_handler.extract_includes(
+          filepath:      filepath,
+          test:          test,
+          flags:         flags,
+          include_paths: include_paths,
+          defines:       defines,
+          deep:          deep
+          )
+
+        msg = "Extracted #include list from #{filepath}:"
+
+        if includes.nil? or includes.empty?
+          # Ensure includes defaults to emtpy array to prevent external iteration problems
+          includes = []
+          msg += ' <empty>'
+        else
+          includes.each { |include| msg += "\n - #{include}" }
+        end
+
+        @loginator.log( msg, Verbosity::DEBUG )
+        @loginator.log( '', Verbosity::DEBUG )
+
+        @includes_handler.write_includes_list( includes_list_filepath, includes )
       end
-
-      @loginator.log( msg, Verbosity::DEBUG )
-      @loginator.log( '', Verbosity::DEBUG )
-
-    # Full preprocessing-based #include extraction with saving to YAML file
-    else
-      includes = @includes_handler.extract_includes(
-        filepath:      filepath,
-        test:          test,
-        flags:         flags,
-        include_paths: include_paths,
-        defines:       defines,
-        deep:          deep
-        )
-
-      msg = "Extracted #include list from #{filepath}:"
-
-      if includes.nil? or includes.empty?
-        # Ensure includes defaults to emtpy array to prevent external iteration problems
-        includes = []
-        msg += ' <empty>'
-      else
-        includes.each { |include| msg += "\n - #{include}" }
-      end
-
-      @loginator.log( msg, Verbosity::DEBUG )
-      @loginator.log( '', Verbosity::DEBUG )
-      
-      @includes_handler.write_includes_list( includes_list_filepath, includes )
     end
 
     return includes
@@ -102,7 +116,7 @@ class Preprocessinator
       test:                     test,
       flags:                    flags,
       include_paths:            include_paths,
-      defines:                  defines      
+      defines:                  defines
     }
 
     # Trigger pre_mock_preprocessing plugin hook
@@ -114,10 +128,10 @@ class Preprocessinator
       flags:          flags,
       include_paths:  include_paths,
       defines:        defines,
-      deep:           preprocess_deep     
+      deep:           preprocess_deep
     }
 
-    # Extract includes & log progress and details   
+    # Extract includes & log progress and details
     includes = preprocess_file_common( **arg_hash )
 
     arg_hash = {
@@ -140,7 +154,7 @@ class Preprocessinator
       preprocessed_filepath: preprocessed_filepath,
       contents:              contents,
       extras:                extras,
-      includes:              includes                       
+      includes:              includes
     }
 
     # Create a reconstituted header file from preprocessing expansion and preserving any extras
@@ -165,7 +179,7 @@ class Preprocessinator
       test:                   test,
       flags:                  flags,
       include_paths:          include_paths,
-      defines:                defines      
+      defines:                defines
     }
 
     # Trigger pre_test_preprocess plugin hook
@@ -177,7 +191,7 @@ class Preprocessinator
       flags:         flags,
       include_paths: include_paths,
       defines:       defines,
-      deep:          preprocess_deep      
+      deep:          preprocess_deep
     }
 
     # Extract includes & log progress and info
@@ -188,7 +202,7 @@ class Preprocessinator
       test:                  test,
       flags:                 flags,
       include_paths:         include_paths,
-      defines:               defines      
+      defines:               defines
     }
 
     # `contents` & `extras` are arrays of text strings to be assembled in generating a new test file.
@@ -200,7 +214,7 @@ class Preprocessinator
       preprocessed_filepath: preprocessed_filepath,
       contents:              contents,
       extras:                extras,
-      includes:              includes                       
+      includes:              includes
     }
 
     # Create a reconstituted test file from preprocessing expansion and preserving any extras
@@ -231,7 +245,7 @@ class Preprocessinator
       flags:         flags,
       include_paths: include_paths,
       defines:       defines,
-      deep:          deep) 
+      deep:          deep)
 
     return includes
   end
