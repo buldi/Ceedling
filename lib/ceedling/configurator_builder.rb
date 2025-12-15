@@ -236,22 +236,22 @@ class ConfiguratorBuilder
       accessors = {
         :project_use_test_preprocessor_tests => false,
         :project_use_test_preprocessor_mocks => false
-      }
+      }    
     when :all
       accessors = {
         :project_use_test_preprocessor_tests => true,
         :project_use_test_preprocessor_mocks => true
-      }
+      }    
     when :tests
       accessors = {
         :project_use_test_preprocessor_tests => true,
         :project_use_test_preprocessor_mocks => false
-      }
+      }    
     when :mocks
       accessors = {
         :project_use_test_preprocessor_tests => false,
         :project_use_test_preprocessor_mocks => true
-      }
+      }    
     end
 
     return accessors
@@ -375,13 +375,9 @@ class ConfiguratorBuilder
     # Force Rake::FileList to expand patterns to ensure it happens (FileList is a bit unreliable)
     all_source.resolve()
 
-    # Force Rake::FileList to expand patterns to ensure it happens (FileList is a bit unreliable)
-    revised_source = @file_path_collection_utils.revise_filelist( all_source, in_hash[:files_source] )
-    revised_source.resolve()
-
     return {
       # Add / subtract files via :files ↳ :source
-      :collection_all_source => revised_source
+      :collection_all_source => @file_path_collection_utils.revise_filelist( all_source, in_hash[:files_source] )
     }
   end
 
@@ -514,7 +510,7 @@ class ConfiguratorBuilder
     # No build paths here so plugins can remap if necessary (i.e. path mapping happens at runtime)
     objects.map! { |object| object.ext(in_hash[:extension_object]) }
 
-    return {
+    return { 
       :collection_all_support => sources,
       :collection_test_fixture_extra_link_objects => objects
     }
