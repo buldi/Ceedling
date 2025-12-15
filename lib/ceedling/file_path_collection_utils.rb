@@ -121,7 +121,9 @@ class FilePathCollectionUtils
     paths = (plus - minus).to_a
     paths.map! {|path| shortest_path_from_working(path) }
 
-    return FileList.new( paths )
+    result = FileList.new( paths )
+    result.resolve()  # Force expansion to prevent race conditions in threaded context
+    return result
   end
 
   def shortest_path_from_working(path)
