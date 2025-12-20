@@ -2306,7 +2306,7 @@ multiple times in the same command line for multiple mixins (see later
 documentation section). 
 
 The example command line above will produce the following logging output
-if verbosity is increased beyond the default.
+when verbosity is increased beyond the default.
 
 ```
 🚧 Loaded project configuration from command line argument using base.yml
