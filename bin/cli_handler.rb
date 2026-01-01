@@ -53,16 +53,16 @@ class CliHandler
     return if !command.nil?
 
     # If project configuration is available, also display Rake tasks
-    @path_validator.standardize_paths( options[:project], *options[:mixin], )
-    if !@projectinator.config_available?( filepath:options[:project], env:env )
-	  list_rake_tasks(
-	    env:env,
-	    app_cfg: app_cfg,
-	    filepath: options[:project],
-	    mixins: options[:mixin],
-	    # Silent Ceedling loading unless debug verbosity
-	    silent: !(verbosity == Verbosity::DEBUG)
-	  )
+    @path_validator.standardize_paths( options[:project], *options[:mixin] )
+    if @projectinator.config_available?( filepath:options[:project], env:env )
+      list_rake_tasks(
+        env:env,
+        app_cfg: app_cfg,
+        filepath: options[:project],
+        mixins: options[:mixin],
+        # Silent Ceedling loading unless debug verbosity
+        silent: !(verbosity == Verbosity::DEBUG)
+      )
     else
       # If no project configuration is available then note why we aren't displaying more
       msg = "Run help commands in a directory with a project file to list additional options"
