@@ -10,11 +10,9 @@
 
 #include <math.h>
 
-#ifdef __STDC_VERSION__
-#if __STDC_VERSION__ >= 202311L
-#define UNITY_C_2023
-#endif
-#endif
+// Include a type definition for `bool`.
+// This also ensures compatibility with C23 and later that recognize `bool` as a keyword.
+#include <stdbool.h>
 
 // Application Type Definitions
 typedef unsigned int uint32;
@@ -23,10 +21,6 @@ typedef unsigned short uint16;
 typedef short int16;
 typedef unsigned char uint8;
 typedef char int8;
-
-#ifndef UNITY_C_2023
-typedef char bool;
-#endif
 
 // Application Special Value Definitions
 #ifndef TRUE

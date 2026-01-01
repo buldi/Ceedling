@@ -39,27 +39,39 @@ class CliHandler
   def app_help(env, app_cfg, options, command, &thor_help)
     verbosity = @helper.set_verbosity( options[:verbosity] )
 
-    # Block handler
+    # If help requested for a command, show it and skip listing build tasks
+    if !command.nil?
+      # Block handler
+      thor_help.call( command ) if block_given?
+      return
+    end
+
+    # Display Thor-generated help listing
     thor_help.call( command ) if block_given?
 
     # If it was help for a specific command, we're done
     return if !command.nil?
 
+    # If project configuration is available, also display Rake tasks
     @path_validator.standardize_paths( options[:project], *options[:mixin], )
-    if @projectinator.config_available?( filepath:options[:project], env:env )
-      # If project configuration is available, also display Rake tasks
-      list_rake_tasks(
-        env:env,
-        app_cfg: app_cfg,
-        filepath: options[:project],
-        mixins: options[:mixin],
-        # Silent Ceedling loading unless debug verbosity
-        silent: !(verbosity == Verbosity::DEBUG)
-      )
+    if !@projectinator.config_available?( filepath:options[:project], env:env )
+	  list_rake_tasks(
+	    env:env,
+	    app_cfg: app_cfg,
+	    filepath: options[:project],
+	    mixins: options[:mixin],
+	    # Silent Ceedling loading unless debug verbosity
+	    silent: !(verbosity == Verbosity::DEBUG)
+	  )
     else
-      # If no project configuration is available, note why we aren't displaying more
-      puts( "Run help commands in folder with a project file to show additional options!" )
+      # If no project configuration is available then note why we aren't displaying more
+      msg = "Run help commands in a directory with a project file to list additional options"
+      @loginator.log( msg, Verbosity::NORMAL, LogLabels::NOTICE )
     end
+
+    version = @helper.manufacture_app_version( app_cfg )
+
+    @helper.help_footer( version.ceedling_tag )
   end
 
 
@@ -136,7 +148,8 @@ class CliHandler
 
     which, _ = @helper.which_ceedling?( env:env, app_cfg:app_cfg )
     if (which == :gem)
-      @loginator.log( "Project configuration specifies the Ceedling gem, not vendored Ceedling", Verbosity::NORMAL, LogLabels::NOTICE )
+      msg = "Project configuration specifies the Ceedling gem, not vendored Ceedling"
+      @loginator.log( msg, Verbosity::NORMAL, LogLabels::NOTICE )
     end
 
     # Thor Actions for project tasks use paths in relation to this path
@@ -259,7 +272,7 @@ class CliHandler
           default_tasks: default_tasks
         )
       else
-        @loginator.log(" > Skipped loading Ceedling application", Verbosity::OBNOXIOUS )
+        @loginator.log( " > Skipped loading Ceedling application", Verbosity::OBNOXIOUS )
       end
     ensure
       @helper.dump_yaml( config, filepath, sections )
@@ -391,10 +404,7 @@ class CliHandler
     @helper.which_ceedling?( env:env, app_cfg:app_cfg )
 
     # Ceedling application
-    application = Versionator.new(
-      app_cfg[:ceedling_root_path],
-      app_cfg[:ceedling_vendor_path]
-    )
+    application = @helper.manufacture_app_version( app_cfg )
 
     # Blank Ceedling version block to be built out conditionally below
     ceedling = nil

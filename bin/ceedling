@@ -71,6 +71,7 @@ begin
   # This prevents double instantiation and preserves object state in handoff
   handoff_objects = {}
   handoff = [
+    :reportinator,
     :loginator,
     :file_wrapper,
     :yaml_wrapper,
@@ -88,7 +89,6 @@ begin
   require 'cli'
   
   # Remove all load paths we've relied on (main application will set up load paths again)
-  $LOAD_PATH.delete( ceedling_bin_path )
   $LOAD_PATH.delete( CEEDLING_APPCFG[:ceedling_lib_path] )
   $LOAD_PATH.delete( diy_vendor_path )
 
