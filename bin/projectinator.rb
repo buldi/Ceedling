@@ -51,8 +51,7 @@ class Projectinator
       config = load_and_log( _filepath, "from working directory", silent )
       return _filepath, config
 
-    # If no user provided filepath and the default filepath does not exist,
-    # we have a big problem
+    # If no user-provided filepath and the default filepath does not exist, we have a big problem
     else
       raise "No project filepath provided and default #{DEFAULT_PROJECT_FILEPATH} not found"
     end
